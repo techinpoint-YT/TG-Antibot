@@ -11,13 +11,15 @@
 
 # TG-AntiBot Advanced Configuration
 # Developed by Techinpoint Gamerz
-# Version: 2.0.0
+# Version: 2.1.0
+# Compatible with Minecraft 1.21.8
 
 # ================================
 # GENERAL SETTINGS
 # ================================
 enabled: true
 debug: false
+server-version: "1.21.8"
 
 # ================================
 # BOT PROTECTION SYSTEM
@@ -165,17 +167,43 @@ alerts:
 # ================================
 advanced:
   # Machine learning (experimental)
-  ml-detection: false             # Enable ML-based bot detection
-  learning-mode: false            # Learn from player behavior patterns
+  ml-detection: true              # Enable ML-based bot detection
+  learning-mode: true             # Learn from player behavior patterns
+  accuracy-threshold: 0.85        # ML accuracy threshold
   
   # Integration options
   discord-webhook: ""             # Discord webhook for alerts
-  database-logging: false         # Log to database instead of files
+  database-logging: true          # Log to database instead of files
   
   # Performance optimization
   async-processing: true          # Process checks asynchronously
   cache-size: 10000              # Maximum cached player profiles
+  cache-duration-minutes: 60     # Cache duration in minutes
   cleanup-interval: 3600         # Profile cleanup interval (seconds)
+
+# ================================
+# DATABASE CONFIGURATION
+# ================================
+database:
+  type: "SQLITE"                  # SQLITE or MYSQL
+  
+  # SQLite settings (default)
+  sqlite:
+    file: "database.db"
+  
+  # MySQL settings (if type is MYSQL)
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "tgantibot"
+    username: "root"
+    password: ""
+    
+  # Connection pool settings
+  pool:
+    maximum-pool-size: 10
+    minimum-idle: 2
+    connection-timeout: 30000
 
 # ================================
 # COMPATIBILITY
@@ -189,6 +217,8 @@ compatibility:
   # Protocol support
   viaversion-support: true        # Support ViaVersion clients
   protocollib-hooks: true         # Use ProtocolLib if available
+  paper-optimizations: true       # Enable Paper-specific optimizations
+  folia-support: false            # Enable Folia support (experimental)
 
 # ================================
 # MESSAGES CUSTOMIZATION

@@ -1,10 +1,13 @@
 name: TG-AntiBot
-version: 2.0.0
-main: org.spigot.Main
-api-version: 1.16
+version: 2.1.0
+main: org.spigot.TGAntiBotPlugin
+api-version: 1.21
 author: Techinpoint Gamerz
 website: https://github.com/TechinpointGamerz/TG-AntiBot
-description: Advanced AntiBot, AntiVPN, Firewall and Security plugin for Spigot servers with machine learning capabilities.
+description: Next-generation AntiBot, AntiVPN, and Security plugin with AI-powered threat detection for Minecraft 1.21.8 servers.
+
+softdepend: [PlaceholderAPI, ProtocolLib, AuthMe, Essentials, LuckPerms, ViaVersion]
+loadbefore: [AuthMe]
 
 commands:
   tgantibot:

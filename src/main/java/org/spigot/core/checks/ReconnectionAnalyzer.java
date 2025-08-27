@@ -1,12 +1,12 @@
 package org.spigot.core.checks;
 
-import org.spigot.Main;
+import org.spigot.TGAntiBotPlugin;
 import org.spigot.core.data.PlayerProfile;
 
-public class ReconnectCheck {
-    private final Main plugin;
+public class ReconnectionAnalyzer {
+    private final TGAntiBotPlugin plugin;
 
-    public ReconnectCheck(Main plugin) {
+    public ReconnectionAnalyzer(TGAntiBotPlugin plugin) {
         this.plugin = plugin;
     }
 

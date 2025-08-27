@@ -1,13 +1,13 @@
 package org.spigot.core.checks;
 
-import org.spigot.Main;
+import org.spigot.TGAntiBotPlugin;
 
 import java.util.List;
 
-public class GeoLocationCheck {
-    private final Main plugin;
+public class GeographicFilter {
+    private final TGAntiBotPlugin plugin;
 
-    public GeoLocationCheck(Main plugin) {
+    public GeographicFilter(TGAntiBotPlugin plugin) {
         this.plugin = plugin;
     }
 
