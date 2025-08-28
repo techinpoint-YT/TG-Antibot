@@ -64,7 +64,7 @@ public class Main extends JavaPlugin {
         registerCommands();
 
         // Initialize metrics
-        new Metrics(this, 12345); // You can change this ID
+        new Metrics(this, 19847); // Official TG-AntiBot plugin ID
 
         long loadTime = System.currentTimeMillis() - startTime;
         getLogger().info("§aTG-AntiBot has been successfully enabled! §7(Took " + loadTime + "ms)");

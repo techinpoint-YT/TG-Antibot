@@ -4,26 +4,74 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.spigot.Main;
 
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class ConfigManager {
 
     private final Main plugin;
+    private final ConcurrentMap<String, Object> configCache;
+    private volatile long lastReload;
 
     public ConfigManager(Main plugin) {
         this.plugin = plugin;
+        this.configCache = new ConcurrentHashMap<>();
+        this.lastReload = System.currentTimeMillis();
         plugin.saveDefaultConfig(); // Saves config.yml if not exists
+        validateConfiguration();
     }
 
     public void reload() {
         plugin.reloadConfig();
+        configCache.clear();
+        lastReload = System.currentTimeMillis();
+        validateConfiguration();
     }
 
-    public void load() {
-        reload(); // Alias to reload(), can be expanded if needed
+    private void validateConfiguration() {
+        FileConfiguration config = getConfig();
+        
+        // Validate critical settings
+        if (config.getInt("shield.connection-burst-limit", -1) < 1) {
+            plugin.getLogger().warning("Invalid connection-burst-limit, using default: 10");
+            config.set("shield.connection-burst-limit", 10);
+        }
+        
+        if (config.getInt("shield.server-query-limit", -1) < 1) {
+            plugin.getLogger().warning("Invalid server-query-limit, using default: 50");
+            config.set("shield.server-query-limit", 50);
+        }
+        
+        // Validate time values
+        if (config.getLong("shield.recovery-delay", -1) < 1000) {
+            plugin.getLogger().warning("Invalid recovery-delay, using default: 60000ms");
+            config.set("shield.recovery-delay", 60000L);
+        }
+        
+        plugin.saveConfig();
     }
 
     private FileConfiguration getConfig() {
         return plugin.getConfig();
+    }
+    
+    @SuppressWarnings("unchecked")
+    private <T> T getCachedValue(String key, Class<T> type, T defaultValue) {
+        return (T) configCache.computeIfAbsent(key, k -> {
+            FileConfiguration config = getConfig();
+            if (type == String.class) {
+                return config.getString(k, (String) defaultValue);
+            } else if (type == Integer.class) {
+                return config.getInt(k, (Integer) defaultValue);
+            } else if (type == Long.class) {
+                return config.getLong(k, (Long) defaultValue);
+            } else if (type == Boolean.class) {
+                return config.getBoolean(k, (Boolean) defaultValue);
+            } else if (type == Double.class) {
+                return config.getDouble(k, (Double) defaultValue);
+            }
+            return defaultValue;
+        });
     }
 
     // ================================
@@ -31,15 +79,15 @@ public class ConfigManager {
     // ================================
     
     public boolean isSystemActive() {
-        return getConfig().getBoolean("system.active", true);
+        return getCachedValue("system.active", Boolean.class, true);
     }
     
     public boolean isVerboseLogging() {
-        return getConfig().getBoolean("system.verbose-logging", false);
+        return getCachedValue("system.verbose-logging", Boolean.class, false);
     }
     
     public boolean isPerformanceMode() {
-        return getConfig().getBoolean("system.performance-mode", false);
+        return getCachedValue("system.performance-mode", Boolean.class, false);
     }
 
     // ================================
@@ -47,35 +95,35 @@ public class ConfigManager {
     // ================================
     
     public int getConnectionBurstLimit() {
-        return getConfig().getInt("shield.connection-burst-limit", 10);
+        return getCachedValue("shield.connection-burst-limit", Integer.class, 10);
     }
     
     public int getServerQueryLimit() {
-        return getConfig().getInt("shield.server-query-limit", 50);
+        return getCachedValue("shield.server-query-limit", Integer.class, 50);
     }
     
     public int getDataStreamLimit() {
-        return getConfig().getInt("shield.data-stream-limit", 100);
+        return getCachedValue("shield.data-stream-limit", Integer.class, 100);
     }
     
     public boolean isAutoDisconnectThreats() {
-        return getConfig().getBoolean("shield.auto-disconnect-threats", true);
+        return getCachedValue("shield.auto-disconnect-threats", Boolean.class, true);
     }
     
     public long getRecoveryDelay() {
-        return getConfig().getLong("shield.recovery-delay", 60000);
+        return getCachedValue("shield.recovery-delay", Long.class, 60000L);
     }
     
     public long getTemporaryBanDuration() {
-        return getConfig().getLong("shield.temporary-ban-duration", 300);
+        return getCachedValue("shield.temporary-ban-duration", Long.class, 300L);
     }
     
     public long getVeteranPlaytime() {
-        return getConfig().getLong("shield.veteran-playtime", 3600000);
+        return getCachedValue("shield.veteran-playtime", Long.class, 3600000L);
     }
     
     public int getTrustedSessionCount() {
-        return getConfig().getInt("shield.trusted-session-count", 5);
+        return getCachedValue("shield.trusted-session-count", Integer.class, 5);
     }
 
     // ================================
@@ -83,23 +131,23 @@ public class ConfigManager {
     // ================================
     
     public boolean isTimingAnalysisActive() {
-        return getConfig().getBoolean("validation.timing-analysis.active", true);
+        return getCachedValue("validation.timing-analysis.active", Boolean.class, true);
     }
     
     public int getMaxAttemptsPerMinute() {
-        return getConfig().getInt("validation.timing-analysis.max-attempts-per-minute", 5);
+        return getCachedValue("validation.timing-analysis.max-attempts-per-minute", Integer.class, 5);
     }
     
     public long getMinimumDelay() {
-        return getConfig().getLong("validation.timing-analysis.minimum-delay", 1000);
+        return getCachedValue("validation.timing-analysis.minimum-delay", Long.class, 1000L);
     }
     
     public boolean isUsernameFilterActive() {
-        return getConfig().getBoolean("validation.username-filter.active", true);
+        return getCachedValue("validation.username-filter.active", Boolean.class, true);
     }
     
     public boolean isBlockSpecialChars() {
-        return getConfig().getBoolean("validation.username-filter.block-special-chars", false);
+        return getCachedValue("validation.username-filter.block-special-chars", Boolean.class, false);
     }
     
     public List<String> getForbiddenPatterns() {
@@ -107,23 +155,23 @@ public class ConfigManager {
     }
     
     public boolean isSessionControlActive() {
-        return getConfig().getBoolean("validation.session-control.active", true);
+        return getCachedValue("validation.session-control.active", Boolean.class, true);
     }
     
     public int getMaxSessions() {
-        return getConfig().getInt("validation.session-control.max-sessions", 3);
+        return getCachedValue("validation.session-control.max-sessions", Integer.class, 3);
     }
     
     public boolean isReconnectMonitorActive() {
-        return getConfig().getBoolean("validation.reconnect-monitor.active", true);
+        return getCachedValue("validation.reconnect-monitor.active", Boolean.class, true);
     }
     
     public long getMinReconnectTime() {
-        return getConfig().getLong("validation.reconnect-monitor.min-reconnect-time", 2000);
+        return getCachedValue("validation.reconnect-monitor.min-reconnect-time", Long.class, 2000L);
     }
     
     public boolean isGeoRestrictionsActive() {
-        return getConfig().getBoolean("validation.geo-restrictions.active", false);
+        return getCachedValue("validation.geo-restrictions.active", Boolean.class, false);
     }
     
     public List<String> getRestrictedRegions() {
@@ -131,11 +179,11 @@ public class ConfigManager {
     }
     
     public boolean isBehaviorScannerActive() {
-        return getConfig().getBoolean("validation.behavior-scanner.active", true);
+        return getCachedValue("validation.behavior-scanner.active", Boolean.class, true);
     }
     
     public int getThreatThreshold() {
-        return getConfig().getInt("validation.behavior-scanner.threat-threshold", 50);
+        return getCachedValue("validation.behavior-scanner.threat-threshold", Integer.class, 50);
     }
 
     // ================================
@@ -143,11 +191,11 @@ public class ConfigManager {
     // ================================
     
     public int getCoordinatedAssaultThreshold() {
-        return getConfig().getInt("threat-detection.coordinated-assault-threshold", 20);
+        return getCachedValue("threat-detection.coordinated-assault-threshold", Integer.class, 20);
     }
     
     public int getPersistentOffenderThreshold() {
-        return getConfig().getInt("threat-detection.persistent-offender-threshold", 5);
+        return getCachedValue("threat-detection.persistent-offender-threshold", Integer.class, 5);
     }
 
     // ================================
@@ -155,11 +203,11 @@ public class ConfigManager {
     // ================================
     
     public int getHighDangerThreshold() {
-        return getConfig().getInt("risk-assessment.high-danger-threshold", 70);
+        return getCachedValue("risk-assessment.high-danger-threshold", Integer.class, 70);
     }
     
     public int getModerateDangerThreshold() {
-        return getConfig().getInt("risk-assessment.moderate-danger-threshold", 40);
+        return getCachedValue("risk-assessment.moderate-danger-threshold", Integer.class, 40);
     }
     
     public List<String> getSafeList() {
@@ -175,23 +223,23 @@ public class ConfigManager {
     // ================================
     
     public boolean isProxyShieldActive() {
-        return getConfig().getBoolean("proxy-shield.active", true);
+        return getCachedValue("proxy-shield.active", Boolean.class, true);
     }
     
     public boolean isAggressiveMode() {
-        return getConfig().getBoolean("proxy-shield.aggressive-mode", true);
+        return getCachedValue("proxy-shield.aggressive-mode", Boolean.class, true);
     }
     
     public int getCacheLifetimeMinutes() {
-        return getConfig().getInt("proxy-shield.cache-lifetime-minutes", 1440);
+        return getCachedValue("proxy-shield.cache-lifetime-minutes", Integer.class, 1440);
     }
     
     public String getProxyCheckAccessKey() {
-        return getConfig().getString("proxy-shield.api-providers.proxycheck.access-key", "");
+        return getCachedValue("proxy-shield.api-providers.proxycheck.access-key", String.class, "");
     }
     
     public int getRequestTimeout() {
-        return getConfig().getInt("proxy-shield.api-providers.proxycheck.request-timeout", 5000);
+        return getCachedValue("proxy-shield.api-providers.proxycheck.request-timeout", Integer.class, 5000);
     }
 
     // ================================
@@ -199,11 +247,11 @@ public class ConfigManager {
     // ================================
     
     public boolean isNetworkBarrierActive() {
-        return getConfig().getBoolean("network-barrier.active", true);
+        return getCachedValue("network-barrier.active", Boolean.class, true);
     }
     
     public long getAutoBlockDuration() {
-        return getConfig().getLong("network-barrier.auto-block-duration", 3600);
+        return getCachedValue("network-barrier.auto-block-duration", Long.class, 3600L);
     }
     
     public List<String> getBlockedAddresses() {
@@ -215,11 +263,11 @@ public class ConfigManager {
     }
     
     public boolean isBlockTorNodes() {
-        return getConfig().getBoolean("network-barrier.block-tor-nodes", false);
+        return getCachedValue("network-barrier.block-tor-nodes", Boolean.class, false);
     }
     
     public boolean isBlockHostingServices() {
-        return getConfig().getBoolean("network-barrier.block-hosting-services", false);
+        return getCachedValue("network-barrier.block-hosting-services", Boolean.class, false);
     }
 
     // ================================
@@ -227,15 +275,15 @@ public class ConfigManager {
     // ================================
     
     public int getMaxConnections() {
-        return getConfig().getInt("flow-control.max-connections", 5);
+        return getCachedValue("flow-control.max-connections", Integer.class, 5);
     }
     
     public int getTimeWindowSeconds() {
-        return getConfig().getInt("flow-control.time-window-seconds", 1);
+        return getCachedValue("flow-control.time-window-seconds", Integer.class, 1);
     }
     
     public boolean isBurstShield() {
-        return getConfig().getBoolean("flow-control.burst-shield", true);
+        return getCachedValue("flow-control.burst-shield", Boolean.class, true);
     }
 
     // ================================
@@ -243,15 +291,15 @@ public class ConfigManager {
     // ================================
     
     public long getConnectionDelayMs() {
-        return getConfig().getLong("user-delays.connection-delay-ms", 3000);
+        return getCachedValue("user-delays.connection-delay-ms", Long.class, 3000L);
     }
     
     public long getActionDelaySeconds() {
-        return getConfig().getLong("user-delays.action-delay-seconds", 3);
+        return getCachedValue("user-delays.action-delay-seconds", Long.class, 3L);
     }
     
     public String getOverridePermission() {
-        return getConfig().getString("user-delays.override-permission", "tga.bypass");
+        return getCachedValue("user-delays.override-permission", String.class, "tga.bypass");
     }
 
     // ================================
@@ -259,31 +307,31 @@ public class ConfigManager {
     // ================================
     
     public String getStaffAlertPermission() {
-        return getConfig().getString("notifications.staff-alert-permission", "tga.alerts");
+        return getCachedValue("notifications.staff-alert-permission", String.class, "tga.alerts");
     }
     
     public boolean isAnnounceThreats() {
-        return getConfig().getBoolean("notifications.announce-threats", true);
+        return getCachedValue("notifications.announce-threats", Boolean.class, true);
     }
     
     public boolean isFileLogging() {
-        return getConfig().getBoolean("notifications.file-logging", true);
+        return getCachedValue("notifications.file-logging", Boolean.class, true);
     }
     
     public String getLogFilename() {
-        return getConfig().getString("notifications.log-filename", "tga-security.log");
+        return getCachedValue("notifications.log-filename", String.class, "tga-security.log");
     }
     
     public boolean isStatusBarUpdates() {
-        return getConfig().getBoolean("notifications.status-bar-updates", true);
+        return getCachedValue("notifications.status-bar-updates", Boolean.class, true);
     }
     
     public boolean isPopupNotifications() {
-        return getConfig().getBoolean("notifications.popup-notifications", true);
+        return getCachedValue("notifications.popup-notifications", Boolean.class, true);
     }
     
     public boolean isProgressBarStatus() {
-        return getConfig().getBoolean("notifications.progress-bar-status", true);
+        return getCachedValue("notifications.progress-bar-status", Boolean.class, true);
     }
 
     // ================================
@@ -291,31 +339,31 @@ public class ConfigManager {
     // ================================
     
     public boolean isAiThreatDetection() {
-        return getConfig().getBoolean("experimental.ai-threat-detection", false);
+        return getCachedValue("experimental.ai-threat-detection", Boolean.class, false);
     }
     
     public boolean isAdaptiveLearning() {
-        return getConfig().getBoolean("experimental.adaptive-learning", false);
+        return getCachedValue("experimental.adaptive-learning", Boolean.class, false);
     }
     
     public String getDiscordAlertWebhook() {
-        return getConfig().getString("experimental.discord-alert-webhook", "");
+        return getCachedValue("experimental.discord-alert-webhook", String.class, "");
     }
     
     public boolean isDatabaseStorage() {
-        return getConfig().getBoolean("experimental.database-storage", false);
+        return getCachedValue("experimental.database-storage", Boolean.class, false);
     }
     
     public boolean isAsyncValidation() {
-        return getConfig().getBoolean("experimental.async-validation", true);
+        return getCachedValue("experimental.async-validation", Boolean.class, true);
     }
     
     public int getProfileCacheSize() {
-        return getConfig().getInt("experimental.profile-cache-size", 10000);
+        return getCachedValue("experimental.profile-cache-size", Integer.class, 10000);
     }
     
     public int getMaintenanceInterval() {
-        return getConfig().getInt("experimental.maintenance-interval", 3600);
+        return getCachedValue("experimental.maintenance-interval", Integer.class, 3600);
     }
 
     // ================================
@@ -323,23 +371,23 @@ public class ConfigManager {
     // ================================
     
     public boolean isAuthmeSupport() {
-        return getConfig().getBoolean("integrations.authme-support", true);
+        return getCachedValue("integrations.authme-support", Boolean.class, true);
     }
     
     public boolean isEssentialsSupport() {
-        return getConfig().getBoolean("integrations.essentials-support", true);
+        return getCachedValue("integrations.essentials-support", Boolean.class, true);
     }
     
     public boolean isLuckpermsSupport() {
-        return getConfig().getBoolean("integrations.luckperms-support", true);
+        return getCachedValue("integrations.luckperms-support", Boolean.class, true);
     }
     
     public boolean isViaversionCompatibility() {
-        return getConfig().getBoolean("integrations.viaversion-compatibility", true);
+        return getCachedValue("integrations.viaversion-compatibility", Boolean.class, true);
     }
     
     public boolean isProtocollibIntegration() {
-        return getConfig().getBoolean("integrations.protocollib-integration", true);
+        return getCachedValue("integrations.protocollib-integration", Boolean.class, true);
     }
 
     // ================================
@@ -461,5 +509,21 @@ public class ConfigManager {
     
     public long getJoinCooldown() {
         return getConnectionDelayMs();
+    }
+    
+    // ================================
+    // UTILITY METHODS
+    // ================================
+    
+    public long getLastReloadTime() {
+        return lastReload;
+    }
+    
+    public void clearCache() {
+        configCache.clear();
+    }
+    
+    public int getCacheSize() {
+        return configCache.size();
     }
 }

@@ -8,6 +8,9 @@ import org.spigot.enums.AttackType;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
@@ -24,6 +27,16 @@ public class AttackAnalyzer {
     // Pattern detection
     private final Map<String, List<Long>> ipTimestamps;
     private final Set<String> notifiedIPs;
+    
+    // Cleanup and maintenance
+    private final ScheduledExecutorService maintenanceExecutor;
+    private volatile boolean isShutdown = false;
+    
+    // Constants
+    private static final int MAX_ATTACK_HISTORY = 1000;
+    private static final int MAX_IP_TIMESTAMPS = 50;
+    private static final long CLEANUP_INTERVAL_MINUTES = 30;
+    private static final long TIMESTAMP_RETENTION_HOURS = 1;
 
     public AttackAnalyzer(Main plugin) {
         this.plugin = plugin;
@@ -34,11 +47,19 @@ public class AttackAnalyzer {
         this.totalConnectionsAnalyzed = new AtomicLong(0);
         this.ipTimestamps = new ConcurrentHashMap<>();
         this.notifiedIPs = ConcurrentHashMap.newKeySet();
+        
+        this.maintenanceExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "TGA-AttackAnalyzer-Maintenance");
+            t.setDaemon(true);
+            return t;
+        });
 
-        startAnalysisTask();
+        startMaintenanceTasks();
     }
 
     public void recordAttack(AttackType type, String sourceIP, long intensity) {
+        if (isShutdown) return;
+        
         long currentTime = System.currentTimeMillis();
         AttackLog log = new AttackLog(type, sourceIP, intensity, currentTime);
         attackHistory.offer(log);
@@ -49,21 +70,22 @@ public class AttackAnalyzer {
         totalAttacksBlocked.incrementAndGet();
 
         // Track IP timestamps for pattern detection
-        ipTimestamps.computeIfAbsent(sourceIP, k -> new ArrayList<>()).add(currentTime);
+        ipTimestamps.computeIfAbsent(sourceIP, k -> Collections.synchronizedList(new ArrayList<>())).add(currentTime);
 
         // Keep only last 1000 attacks to prevent memory issues
-        while (attackHistory.size() > 1000) {
+        while (attackHistory.size() > MAX_ATTACK_HISTORY) {
             attackHistory.poll();
         }
 
         // Analyze patterns
         analyzeAttackPatterns(log);
 
-        // Clean old timestamps periodically
-        cleanOldTimestamps(sourceIP, currentTime);
+        // Clean old timestamps for this IP
+        cleanOldTimestampsForIP(sourceIP, currentTime);
     }
 
     public void recordConnectionAnalysis() {
+        if (isShutdown) return;
         totalConnectionsAnalyzed.incrementAndGet();
     }
 
@@ -71,7 +93,7 @@ public class AttackAnalyzer {
         long currentTime = System.currentTimeMillis();
         long oneMinuteAgo = currentTime - 60000;
 
-        // Check for coordinated attacks using stream with collect instead of toList()
+        // Check for coordinated attacks
         long recentAttacks = attackHistory.stream()
                 .filter(log -> log.getTimestamp() > oneMinuteAgo)
                 .count();
@@ -107,29 +129,73 @@ public class AttackAnalyzer {
         List<Long> timestamps = ipTimestamps.get(sourceIP);
         if (timestamps == null || timestamps.size() < 5) return;
 
-        // Check if last 5 attacks were within 10 seconds
-        List<Long> recentTimestamps = timestamps.stream()
-                .filter(t -> currentTime - t < 10000)
-                .collect(Collectors.toList());
+        // Synchronize access to the timestamp list
+        synchronized (timestamps) {
+            // Check if last 5 attacks were within 10 seconds
+            List<Long> recentTimestamps = timestamps.stream()
+                    .filter(t -> currentTime - t < 10000)
+                    .collect(Collectors.toList());
 
-        if (recentTimestamps.size() >= 5) {
-            plugin.getLogger().warning("§c[RAPID FIRE] Detected rapid-fire attack from " + sourceIP);
-            plugin.getBotProtectionManager().addToBlacklist(sourceIP, "Rapid-fire attack pattern");
+            if (recentTimestamps.size() >= 5) {
+                plugin.getLogger().warning("§c[RAPID FIRE] Detected rapid-fire attack from " + sourceIP);
+                plugin.getBotProtectionManager().addToBlacklist(sourceIP, "Rapid-fire attack pattern");
+            }
         }
     }
 
-    private void cleanOldTimestamps(String sourceIP, long currentTime) {
+    private void cleanOldTimestampsForIP(String sourceIP, long currentTime) {
         List<Long> timestamps = ipTimestamps.get(sourceIP);
-        if (timestamps != null && timestamps.size() > 20) {
-            // Remove timestamps older than 1 hour
-            long oneHourAgo = currentTime - 3600000;
-            timestamps.removeIf(timestamp -> timestamp < oneHourAgo);
+        if (timestamps != null) {
+            synchronized (timestamps) {
+                // Remove timestamps older than 1 hour
+                long oneHourAgo = currentTime - TimeUnit.HOURS.toMillis(TIMESTAMP_RETENTION_HOURS);
+                timestamps.removeIf(timestamp -> timestamp < oneHourAgo);
+                
+                // Keep only the most recent timestamps to prevent memory issues
+                while (timestamps.size() > MAX_IP_TIMESTAMPS) {
+                    timestamps.remove(0);
+                }
+            }
 
-            // Remove empty entries
+            // Remove empty entries and clean up
             if (timestamps.isEmpty()) {
                 ipTimestamps.remove(sourceIP);
                 notifiedIPs.remove(sourceIP);
             }
+        }
+    }
+    
+    private void performGlobalCleanup() {
+        if (isShutdown) return;
+        
+        long currentTime = System.currentTimeMillis();
+        long oneHourAgo = currentTime - TimeUnit.HOURS.toMillis(TIMESTAMP_RETENTION_HOURS);
+        
+        // Clean up old IP timestamps globally
+        Iterator<Map.Entry<String, List<Long>>> iterator = ipTimestamps.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, List<Long>> entry = iterator.next();
+            List<Long> timestamps = entry.getValue();
+            
+            synchronized (timestamps) {
+                timestamps.removeIf(timestamp -> timestamp < oneHourAgo);
+                
+                if (timestamps.isEmpty()) {
+                    iterator.remove();
+                    notifiedIPs.remove(entry.getKey());
+                }
+            }
+        }
+        
+        // Clean up old attack history
+        while (attackHistory.size() > MAX_ATTACK_HISTORY) {
+            attackHistory.poll();
+        }
+        
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("§7[ATTACK ANALYZER] Global cleanup completed. " +
+                "IP timestamps: " + ipTimestamps.size() + ", " +
+                "Attack history: " + attackHistory.size());
         }
     }
 
@@ -139,16 +205,26 @@ public class AttackAnalyzer {
         // Implementation depends on your protection system
     }
 
-    private void startAnalysisTask() {
-        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::generateHourlyReport,
-                72000L, 72000L); // Every hour (72000 ticks = 1 hour)
+    private void startMaintenanceTasks() {
+        // Hourly report generation
+        maintenanceExecutor.scheduleAtFixedRate(
+            this::generateHourlyReport,
+            1, 1, TimeUnit.HOURS
+        );
+        
+        // Periodic cleanup
+        maintenanceExecutor.scheduleAtFixedRate(
+            this::performGlobalCleanup,
+            CLEANUP_INTERVAL_MINUTES, CLEANUP_INTERVAL_MINUTES, TimeUnit.MINUTES
+        );
     }
 
     private void generateHourlyReport() {
+        if (isShutdown) return;
+        
         long currentTime = System.currentTimeMillis();
         long hourAgo = currentTime - 3600000; // 1 hour ago
 
-        // Use collect() instead of toList() for Java 8+ compatibility
         List<AttackLog> recentAttacks = attackHistory.stream()
                 .filter(log -> log.getTimestamp() > hourAgo)
                 .collect(Collectors.toList());
@@ -194,7 +270,6 @@ public class AttackAnalyzer {
     }
 
     public List<AttackLog> getRecentAttacks(int limit) {
-        // Use collect() instead of toList() for Java 8+ compatibility
         return attackHistory.stream()
                 .sorted((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()))
                 .limit(limit)
@@ -271,12 +346,31 @@ public class AttackAnalyzer {
                 .filter(log -> log.getTimestamp() > oneMinuteAgo)
                 .count();
     }
+    
+    public String getMemoryStats() {
+        return String.format("Attack History: %d, IP Timestamps: %d, Attack Counts: %d, IP Attack Counts: %d",
+            attackHistory.size(), ipTimestamps.size(), attackCounts.size(), ipAttackCounts.size());
+    }
 
     public void shutdown() {
+        isShutdown = true;
+        
+        // Shutdown maintenance executor
+        maintenanceExecutor.shutdown();
+        try {
+            if (!maintenanceExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                maintenanceExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            maintenanceExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        
         // Save statistics to file if needed
         plugin.getLogger().info("§7Attack analyzer shutting down...");
         plugin.getLogger().info("§7Final statistics - Total attacks blocked: " + getTotalAttacksBlocked());
         plugin.getLogger().info("§7Total connections analyzed: " + getTotalConnectionsAnalyzed());
         plugin.getLogger().info("§7Block rate: " + String.format("%.2f%%", getBlockRate()));
+        plugin.getLogger().info("§7Memory stats: " + getMemoryStats());
     }
 }

@@ -319,6 +319,12 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private String getIPFromTarget(String target) {
+        if (target == null || target.trim().isEmpty()) {
+            return null;
+        }
+        
+        target = target.trim();
+        
         // Check if it's already an IP
         if (target.matches("\\d+\\.\\d+\\.\\d+\\.\\d+")) {
             return target;
@@ -348,8 +354,59 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§e/tga attacks [limit] §7- Show recent attacks");
         sender.sendMessage("§e/tga profile <player|ip> §7- Show player profile");
         sender.sendMessage("§e/tga toggle <actionbar|title|bossbar> §7- Toggle notifications");
+        sender.sendMessage("§e/tga cache §7- Show cache statistics");
+        sender.sendMessage("§e/tga debug §7- Show debug information");
         sender.sendMessage("");
         sender.sendMessage("§7Alias: §e/tgantibot §7can be used instead");
+        sender.sendMessage("§8§l§n" + separator);
+    }
+    
+    private void handleCache(CommandSender sender) {
+        if (!sender.hasPermission("tga.cache")) {
+            sender.sendMessage(plugin.getMessages().get("no-permission"));
+            return;
+        }
+        
+        String separator = generateSeparator(50);
+        sender.sendMessage("§8§l§n" + separator);
+        sender.sendMessage("");
+        sender.sendMessage("§c§lTG-ANTIBOT CACHE STATISTICS");
+        sender.sendMessage("");
+        sender.sendMessage("§7Config Cache: " + plugin.getConfigManager().getCacheSize() + " entries");
+        sender.sendMessage("§7Message Cache: " + plugin.getMessages().getCacheStats());
+        sender.sendMessage("§7VPN Cache: " + plugin.getVPNChecker().getCacheStats());
+        sender.sendMessage("§7Attack Analyzer: " + plugin.getAttackAnalyzer().getMemoryStats());
+        sender.sendMessage("§7Bot Protection: " + plugin.getBotProtectionManager().getStats());
+        sender.sendMessage("§7Firewall: " + plugin.getFirewallManager().getStats());
+        sender.sendMessage("§8§l§n" + separator);
+    }
+    
+    private void handleDebug(CommandSender sender) {
+        if (!sender.hasPermission("tga.debug")) {
+            sender.sendMessage(plugin.getMessages().get("no-permission"));
+            return;
+        }
+        
+        String separator = generateSeparator(50);
+        sender.sendMessage("§8§l§n" + separator);
+        sender.sendMessage("");
+        sender.sendMessage("§c§lTG-ANTIBOT DEBUG INFORMATION");
+        sender.sendMessage("");
+        sender.sendMessage("§7Plugin Version: §f" + plugin.getDescription().getVersion());
+        sender.sendMessage("§7Server Version: §f" + plugin.getServer().getVersion());
+        sender.sendMessage("§7Java Version: §f" + System.getProperty("java.version"));
+        sender.sendMessage("§7Debug Mode: §f" + plugin.getConfigManager().isDebugMode());
+        sender.sendMessage("§7Performance Mode: §f" + plugin.getConfigManager().isPerformanceMode());
+        sender.sendMessage("§7System Active: §f" + plugin.getConfigManager().isSystemActive());
+        sender.sendMessage("");
+        sender.sendMessage("§7Memory Usage:");
+        Runtime runtime = Runtime.getRuntime();
+        long maxMemory = runtime.maxMemory() / 1024 / 1024;
+        long totalMemory = runtime.totalMemory() / 1024 / 1024;
+        long freeMemory = runtime.freeMemory() / 1024 / 1024;
+        long usedMemory = totalMemory - freeMemory;
+        sender.sendMessage("§7  Used: §f" + usedMemory + "MB / " + maxMemory + "MB");
+        sender.sendMessage("§7  Free: §f" + freeMemory + "MB");
         sender.sendMessage("§8§l§n" + separator);
     }
 
@@ -361,6 +418,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
         return sb.toString();
     }
+    
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender,
                                                 @NotNull Command command,
@@ -370,7 +428,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 1) {
             List<String> subCommands = Arrays.asList("help", "reload", "stats", "status",
-                    "whitelist", "blacklist", "attacks", "profile", "toggle");
+                    "whitelist", "blacklist", "attacks", "profile", "toggle", "cache", "debug");
 
             for (String subCmd : subCommands) {
                 if (sender.hasPermission("tga." + subCmd) || subCmd.equals("help")) {

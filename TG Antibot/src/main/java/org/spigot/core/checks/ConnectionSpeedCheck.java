@@ -14,18 +14,27 @@ public class ConnectionSpeedCheck {
         if (!plugin.getConfigManager().isConnectionSpeedCheckEnabled()) {
             return false;
         }
+        
+        if (profile == null) {
+            plugin.getLogger().warning("ConnectionSpeedCheck: null profile provided");
+            return true;
+        }
 
         // Check for rapid connections
         int connectionsInLastMinute = profile.getConnectionsInTimeframe(60000);
         if (connectionsInLastMinute > plugin.getConfigManager().getMaxConnectionsPerMinute()) {
-            plugin.getLogger().info("§cBlocked IP " + profile.getIp() + " - Too many connections: " + connectionsInLastMinute);
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("§cBlocked IP " + profile.getIp() + " - Too many connections: " + connectionsInLastMinute + "/" + plugin.getConfigManager().getMaxConnectionsPerMinute());
+            }
             return true;
         }
 
         // Check connection interval
         long averageInterval = profile.getAverageConnectionInterval();
         if (averageInterval > 0 && averageInterval < plugin.getConfigManager().getMinConnectionInterval()) {
-            plugin.getLogger().info("§cBlocked IP " + profile.getIp() + " - Connection interval too short: " + averageInterval + "ms");
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("§cBlocked IP " + profile.getIp() + " - Connection interval too short: " + averageInterval + "ms (min: " + plugin.getConfigManager().getMinConnectionInterval() + "ms)");
+            }
             return true;
         }
 

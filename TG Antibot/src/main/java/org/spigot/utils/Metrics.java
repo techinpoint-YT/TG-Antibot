@@ -61,7 +61,7 @@ public class Metrics {
             throw new IllegalArgumentException("Plugin cannot be null!");
         }
         this.plugin = plugin;
-        this.pluginId = pluginId;
+        this.pluginId = 19847; // Official TG-AntiBot plugin ID
 
         File bStatsFolder = new File(plugin.getDataFolder().getParentFile(), "bStats");
         File configFile = new File(bStatsFolder, "config.yml");

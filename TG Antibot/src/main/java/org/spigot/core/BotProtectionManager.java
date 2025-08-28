@@ -76,11 +76,24 @@ public class BotProtectionManager {
         String ip = address.getHostAddress();
         long currentTime = System.currentTimeMillis();
 
+        // Input validation
+        if (uuid == null || address == null || name == null || name.trim().isEmpty()) {
+            plugin.getLogger().warning("Invalid connection parameters: uuid=" + uuid + ", address=" + address + ", name=" + name);
+            return true;
+        }
+        
+        // Sanitize inputs
+        name = name.trim();
+        ip = ip.trim();
+
         // Update counters
         joinsPerSecond.incrementAndGet();
 
         // Check whitelist first
         if (whitelist.contains(ip)) {
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("Allowing whitelisted IP: " + ip + " (Player: " + name + ")");
+            }
             return false;
         }
 
@@ -92,7 +105,11 @@ public class BotProtectionManager {
 
         // Get or create player profile
         PlayerProfile profile = playerProfiles.computeIfAbsent(ip, k -> new PlayerProfile(ip));
-        profile.addConnection(name, currentTime);
+        
+        // Thread-safe profile update
+        synchronized (profile) {
+            profile.addConnection(name, currentTime);
+        }
 
         // Run security checks
         if (speedCheck.shouldBlock(profile, currentTime)) {
@@ -127,10 +144,16 @@ public class BotProtectionManager {
 
         // Check protection mode
         if (currentMode == ProtectionMode.LOCKDOWN) {
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("Blocking connection due to LOCKDOWN mode: " + ip + " (Player: " + name + ")");
+            }
             return true;
         }
 
         if (currentMode == ProtectionMode.STRICT && !isPlayerTrusted(profile)) {
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("Blocking untrusted connection in STRICT mode: " + ip + " (Player: " + name + ")");
+            }
             return true;
         }
 
@@ -141,16 +164,21 @@ public class BotProtectionManager {
     }
 
     public void handleServerPing(InetAddress address) {
+        if (address == null) return;
+        
         pingsPerSecond.incrementAndGet();
         String ip = address.getHostAddress();
 
         PlayerProfile profile = playerProfiles.get(ip);
         if (profile != null) {
-            profile.addPing(System.currentTimeMillis());
+            synchronized (profile) {
+                profile.addPing(System.currentTimeMillis());
+            }
         }
     }
 
     public void handlePacket(String ip) {
+        if (ip == null || ip.trim().isEmpty()) return;
         packetsPerSecond.incrementAndGet();
     }
 
@@ -180,6 +208,11 @@ public class BotProtectionManager {
     }
 
     private void setProtectionMode(ProtectionMode mode) {
+        if (mode == null) {
+            plugin.getLogger().warning("Attempted to set null protection mode");
+            return;
+        }
+        
         if (currentMode != mode) {
             ProtectionMode oldMode = currentMode;
             currentMode = mode;
@@ -197,6 +230,8 @@ public class BotProtectionManager {
     private void kickSuspiciousPlayers() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.hasPermission("tga.bypass")) continue;
+            
+            if (player.getAddress() == null) continue;
 
             String ip = player.getAddress().getAddress().getHostAddress();
             PlayerProfile profile = playerProfiles.get(ip);
@@ -209,23 +244,40 @@ public class BotProtectionManager {
     }
 
     public void removeFromWhitelist(String ip) {
+        if (ip == null || ip.trim().isEmpty()) return;
         whitelist.remove(ip);
         saveData();
     }
 
     private boolean isPlayerTrusted(PlayerProfile profile) {
+        if (profile == null) return false;
         return profile.getPlayTime() > plugin.getConfigManager().getTrustedPlayerTime() ||
                 profile.getConnectionCount() > plugin.getConfigManager().getTrustedSessionCount();
     }
 
     public void addToWhitelist(String ip) {
+        if (ip == null || ip.trim().isEmpty()) {
+            plugin.getLogger().warning("Attempted to whitelist null or empty IP");
+            return;
+        }
+        
         whitelist.add(ip);
         blacklist.remove(ip);
         tempBlacklist.remove(ip);
+        
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("Added IP to whitelist: " + ip);
+        }
+        
         saveData();
     }
 
     public void addToBlacklist(String ip, String reason) {
+        if (ip == null || ip.trim().isEmpty()) {
+            plugin.getLogger().warning("Attempted to blacklist null or empty IP");
+            return;
+        }
+        
         blacklist.add(ip);
         whitelist.remove(ip);
         plugin.getLogger().info("§cAdded IP to blacklist: " + ip + " (Reason: " + reason + ")");
@@ -233,18 +285,32 @@ public class BotProtectionManager {
     }
 
     private void addToTempBlacklist(String ip, String reason) {
+        if (ip == null || ip.trim().isEmpty()) {
+            plugin.getLogger().warning("Attempted to temp blacklist null or empty IP");
+            return;
+        }
+        
         tempBlacklist.add(ip);
         plugin.getLogger().info("§eAdded IP to temporary blacklist: " + ip + " (Reason: " + reason + ")");
 
         // Remove from temp blacklist after configured time
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             tempBlacklist.remove(ip);
+            if (plugin.getConfigManager().isDebugMode()) {
+                plugin.getLogger().info("Removed IP from temporary blacklist: " + ip);
+            }
         }, plugin.getConfigManager().getTempBlacklistDuration() * 20L);
     }
 
     public void removeFromBlacklist(String ip) {
+        if (ip == null || ip.trim().isEmpty()) return;
         blacklist.remove(ip);
         tempBlacklist.remove(ip);
+        
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("Removed IP from blacklist: " + ip);
+        }
+        
         saveData();
     }
 
@@ -254,14 +320,50 @@ public class BotProtectionManager {
             pingsPerSecond.set(0);
             packetsPerSecond.set(0);
         }, 20L, 20L); // Reset every second
+        
+        // Periodic cleanup task
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            cleanupPlayerProfiles();
+        }, 6000L, 6000L); // Every 5 minutes
+    }
+    
+    private void cleanupPlayerProfiles() {
+        long retentionTime = plugin.getConfigManager().getMaintenanceInterval() * 1000L;
+        int maxProfiles = plugin.getConfigManager().getProfileCacheSize();
+        
+        // Clean up old profiles
+        playerProfiles.entrySet().removeIf(entry -> {
+            PlayerProfile profile = entry.getValue();
+            synchronized (profile) {
+                profile.cleanup(retentionTime);
+                // Remove profiles with no recent activity
+                return profile.getConnectionCount() == 0 && 
+                       System.currentTimeMillis() - profile.getLastConnection() > retentionTime;
+            }
+        });
+        
+        // Limit profile count
+        if (playerProfiles.size() > maxProfiles) {
+            // Remove oldest profiles
+            playerProfiles.entrySet().stream()
+                .sorted((e1, e2) -> Long.compare(e1.getValue().getLastConnection(), e2.getValue().getLastConnection()))
+                .limit(playerProfiles.size() - maxProfiles)
+                .forEach(entry -> playerProfiles.remove(entry.getKey()));
+        }
+        
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("Profile cleanup completed. Current profiles: " + playerProfiles.size());
+        }
     }
 
     public void reload() {
         loadData();
+        plugin.getLogger().info("BotProtectionManager reloaded");
     }
 
     public void shutdown() {
         saveData();
+        plugin.getLogger().info("BotProtectionManager shutdown completed");
     }
 
     private void loadData() {
@@ -271,12 +373,24 @@ public class BotProtectionManager {
 
         whitelist.addAll(plugin.getConfig().getStringList("security.whitelist"));
         blacklist.addAll(plugin.getConfig().getStringList("security.blacklist"));
+        
+        if (plugin.getConfigManager().isDebugMode()) {
+            plugin.getLogger().info("Loaded " + whitelist.size() + " whitelisted IPs and " + 
+                blacklist.size() + " blacklisted IPs");
+        }
     }
 
     private void saveData() {
-        plugin.getConfig().set("security.whitelist", new ArrayList<>(whitelist));
-        plugin.getConfig().set("security.blacklist", new ArrayList<>(blacklist));
-        plugin.saveConfig();
+        try {
+            plugin.getConfig().set("security.whitelist", new ArrayList<>(whitelist));
+            plugin.getConfig().set("security.blacklist", new ArrayList<>(blacklist));
+            plugin.saveConfig();
+        } catch (Exception e) {
+            plugin.getLogger().severe("Failed to save security data: " + e.getMessage());
+            if (plugin.getConfigManager().isDebugMode()) {
+                e.printStackTrace();
+            }
+        }
     }
 
     // Getters
@@ -288,4 +402,13 @@ public class BotProtectionManager {
     public Set<String> getWhitelist() { return new HashSet<>(whitelist); }
     public Set<String> getBlacklist() { return new HashSet<>(blacklist); }
     public Map<String, PlayerProfile> getPlayerProfiles() { return new HashMap<>(playerProfiles); }
+    
+    // Additional utility methods
+    public int getProfileCount() { return playerProfiles.size(); }
+    public int getTempBlacklistSize() { return tempBlacklist.size(); }
+    
+    public String getStats() {
+        return String.format("Mode: %s, Profiles: %d, Whitelist: %d, Blacklist: %d, TempBlacklist: %d",
+            currentMode, playerProfiles.size(), whitelist.size(), blacklist.size(), tempBlacklist.size());
+    }
 }
