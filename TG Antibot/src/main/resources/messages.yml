@@ -1,0 +1,208 @@
+# ================================================================
+# TG-AntiBot - Enhanced Messages Configuration
+# Developed by Techinpoint Gamerz
+# All color codes use '&' (e.g., &c for red, &a for green, &7 for gray)
+# Placeholders: {player}, {ip}, {type}, {intensity}, {mode}, etc.
+# ================================================================
+
+# ================================
+# CORE SYSTEM MESSAGES
+# ================================
+system-prefix: "&7[&c&lTG-AntiBot&7] "
+access-denied: "&cAccess denied! Insufficient permissions."
+config-reloaded: "&aTG-AntiBot configuration refreshed successfully!"
+system-offline: "&cTG-AntiBot is currently offline."
+
+# ================================
+# CONNECTION DENIAL MESSAGES
+# ================================
+access-blocked-title: "&c&lACCESS RESTRICTED"
+access-blocked-reason: "&7Your connection has been restricted by our security system.\n&7Please wait a few moments before attempting to reconnect."
+
+address-banned: "&c&lIP ADDRESS RESTRICTED\n&7Your IP address (&e{ip}&7) has been restricted.\n&7Reason: Security protocol violation.\n\n&7If you believe this is an error, please contact our administrators."
+
+proxy-detection-message: "&c&lPROXY/VPN DETECTED\n&7Proxy and VPN connections are prohibited on this server.\n&7Please disable your proxy/VPN service and reconnect.\n\n&7Need assistance? Contact our support team."
+
+emergency-mode-kick: "&c&lSERVER EMERGENCY MODE\n&7The server is currently under enhanced protection.\n&7All new connections are temporarily restricted.\n\n&7Please attempt to reconnect in a few minutes."
+
+# ================================
+# THREAT ALERT MESSAGES
+# ================================
+threat-alert: "&c&l[SECURITY WARNING] &r&cThreat detected: &e{type}\n&7Severity: &c{intensity} &7| Status: {mode}"
+threat-neutralized: "&a&l[SECURITY] &r&aThreat neutralized. Protection status normalized."
+
+# Threat type specific messages
+threat-connection-flood: "&c&lCONNECTION FLOOD DETECTED\n&7Multiple rapid connections identified.\n&7Activating emergency protection mode."
+
+threat-query-flood: "&e&lSERVER QUERY FLOOD DETECTED\n&7Excessive server queries identified.\n&7Enabling enhanced protection protocols."
+
+threat-data-flood: "&6&lDATA STREAM FLOOD DETECTED\n&7High data volume detected.\n&7Advanced filtering protocols active."
+
+# ================================
+# NOTIFICATION CONTROL MESSAGES
+# ================================
+status-bar-enabled: "&aStatus bar notifications activated."
+status-bar-disabled: "&cStatus bar notifications deactivated."
+
+popup-enabled: "&aPopup notifications activated."
+popup-disabled: "&cPopup notifications deactivated."
+
+progress-bar-enabled: "&aProgress bar notifications activated."
+progress-bar-disabled: "&cProgress bar notifications deactivated."
+
+# Status format for status bar and popups
+protection-status-format: "&7Status: {mode} &8| &7Connections: &c{joins}/s &8| &7Queries: &b{pings}/s &8| &7Blocked: &e{blocked}"
+
+# Popup notifications
+popup-protection: "&c&lTG-ANTIBOT"
+popup-threat: "&c&lTHREAT ACTIVE"
+popup-secure: "&a&lSECURE"
+
+# ================================
+# COMMAND INTERFACE MESSAGES
+# ================================
+# Help command
+help-header: "&8&l&n" + "=" * 50 + "\n&c&lTG-ANTIBOT COMMAND CENTER\n"
+help-footer: "&8&l&n" + "=" * 50
+
+# Statistics command
+statistics-header: "&8&l&n" + "=" * 50 + "\n&c&lTG-ANTIBOT ANALYTICS\n"
+statistics-protection-mode: "&7Protection Status: {mode}"
+statistics-connections-per-sec: "&7Connections/sec: &c{joins}"
+statistics-queries-per-sec: "&7Queries/sec: &b{pings}"
+statistics-total-blocked: "&7Total Threats Blocked: &c{blocked}"
+statistics-success-rate: "&7Success Rate: &a{rate}%"
+statistics-footer: "&8&l&n" + "=" * 50
+
+# Safe/Danger list commands
+safe-list-added: "&aAdded &e{target} &a(&7{ip}&a) to safe list."
+safe-list-removed: "&aRemoved &e{target} &a(&7{ip}&a) from safe list."
+danger-list-added: "&cAdded &e{target} &c(&7{ip}&c) to danger list."
+danger-list-removed: "&aRemoved &e{target} &a(&7{ip}&a) from danger list."
+
+target-not-found: "&cTarget not found or invalid IP address."
+command-usage-error: "&cInvalid command usage. Use &e/tga help &cfor available commands."
+
+# Profile command
+user-profile-header: "&8&l&n" + "=" * 50 + "\n&c&lUSER PROFILE: &e{player}\n"
+user-profile-address: "&7IP Address: &f{ip}"
+user-profile-identities: "&7Identities: &f{nicknames}"
+user-profile-sessions: "&7Sessions: &e{connections}"
+user-profile-activity-time: "&7Activity Time: &a{playtime}"
+user-profile-threat-score: "&7Threat Score: &c{suspicion}"
+user-profile-first-seen: "&7First Seen: &7{date}"
+user-profile-last-seen: "&7Last Seen: &7{date}"
+user-profile-footer: "&8&l&n" + "=" * 50
+
+# Threat logs
+threat-logs-header: "&8&l&n" + "=" * 50 + "\n&c&lRECENT THREATS &7(Last {limit})\n"
+threat-logs-none: "&aNo recent threats recorded."
+threat-logs-footer: "&8&l&n" + "=" * 50
+
+# ================================
+# RISK LEVEL MESSAGES
+# ================================
+risk-minimal: "&a&lMINIMAL RISK"
+risk-moderate: "&e&lMODERATE RISK"
+risk-critical: "&c&lCRITICAL RISK"
+
+# ================================
+# PROTECTION STATUS MESSAGES
+# ================================
+status-standard: "&a&lSTANDARD"
+status-enhanced: "&e&lENHANCED"
+status-emergency: "&c&lEMERGENCY"
+
+# Status change notifications
+status-changed: "&7Protection status changed to {mode}"
+status-standard-desc: "&7Standard protection protocols active"
+status-enhanced-desc: "&7Enhanced security measures active"
+status-emergency-desc: "&7Maximum protection - blocking all suspicious connections"
+
+# ================================
+# SYSTEM ERROR MESSAGES
+# ================================
+system-error: "&cA system error occurred while processing your request."
+permission-error: "&cYou lack the required permissions for this action."
+player-only-error: "&cThis command is restricted to players only."
+console-only-error: "&cThis command is restricted to console only."
+number-format-error: "&cInvalid number format provided."
+command-cooldown-error: "&cPlease wait before using this command again."
+
+# ================================
+# OPERATION SUCCESS MESSAGES
+# ================================
+operation-success: "&aOperation completed successfully."
+configuration-saved: "&aConfiguration saved successfully."
+cache-cleared: "&aCache cleared successfully."
+database-updated: "&aDatabase updated successfully."
+
+# ================================
+# SYSTEM WARNING MESSAGES
+# ================================
+high-load-warning: "&e&lWARNING: &r&eHigh server load detected. Some features may be limited."
+outdated-config-warning: "&e&lWARNING: &r&eYour configuration file is outdated. Please update it."
+missing-permissions-warning: "&e&lWARNING: &r&eSome features require additional permissions to function properly."
+
+# ================================
+# PLUGIN INTEGRATION MESSAGES
+# ================================
+authme-integration: "&7AuthMe integration: {status}"
+essentials-integration: "&7Essentials integration: {status}"
+luckperms-integration: "&7LuckPerms integration: {status}"
+integration-active: "&aActive"
+integration-inactive: "&cInactive"
+
+# ================================
+# ADVANCED SYSTEM MESSAGES
+# ================================
+ai-detection-enabled: "&aAI threat detection activated."
+ai-detection-disabled: "&cAI threat detection deactivated."
+learning-mode-active: "&eAdaptive learning mode active - analyzing user behavior patterns."
+
+# ================================
+# DISCORD INTEGRATION MESSAGES
+# ================================
+discord-threat-alert: "🚨 **THREAT DETECTED** 🚨\nType: {type}\nSeverity: {intensity}\nServer: {server}"
+discord-threat-ended: "✅ **THREAT NEUTRALIZED** ✅\nProtection returned to standard mode\nServer: {server}"
+
+# ================================
+# CUSTOMIZABLE DISCONNECTION MESSAGES
+# ================================
+disconnect-suspicious-activity: "&c&lSUSPICIOUS ACTIVITY DETECTED\n&7Your connection pattern has been flagged by our security system.\n\n&7If you're a legitimate user, please:\n&7• Wait 5 minutes before reconnecting\n&7• Ensure you're not using any automation tools\n&7• Contact administrators if this persists"
+
+disconnect-session-limit: "&c&lSESSION LIMIT EXCEEDED\n&7Too many sessions detected from your IP address.\n\n&7Maximum allowed: {max}\n&7Your sessions: {count}\n\n&7Please use only one session per IP address."
+
+disconnect-rapid-reconnection: "&c&lRAPID RECONNECTION\n&7You're reconnecting too frequently.\n\n&7Please wait at least {time} seconds between connections.\n&7This helps protect the server from automated threats."
+
+disconnect-username-violation: "&c&lUSERNAME VIOLATION\n&7Your username violates our security policies.\n\n&7Reason: {reason}\n&7Please choose a different username and try again."
+
+disconnect-region-restricted: "&c&lREGION RESTRICTION\n&7Connections from your region are currently restricted.\n\n&7Region: {country}\n&7If you believe this is an error, please contact our administrators."
+
+# ================================
+# PLACEHOLDER REFERENCE
+# ================================
+# Available placeholders:
+# {player} - Player name
+# {ip} - IP address
+# {type} - Threat type
+# {intensity} - Threat intensity
+# {mode} - Protection mode
+# {joins} - Connections per second
+# {pings} - Queries per second
+# {packets} - Data streams per second
+# {blocked} - Total blocked connections
+# {rate} - Success rate percentage
+# {time} - Time value
+# {count} - Count value
+# {max} - Maximum value
+# {reason} - Reason text
+# {country} - Country name/code
+# {server} - Server name
+# {date} - Formatted date
+# {playtime} - Formatted activity time
+# {nicknames} - Comma-separated identities
+# {connections} - Session count
+# {suspicion} - Threat score
+# {limit} - Limit value
+# {status} - Status text

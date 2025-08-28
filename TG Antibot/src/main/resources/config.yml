@@ -1,0 +1,202 @@
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+##                                                                                     ##
+## ████████╗ ██████╗       █████╗ ███╗   ██╗████████╗██╗██████╗  ██████╗ ████████╗     ##
+## ╚══██╔══╝██╔════╝      ██╔══██╗████╗  ██║╚══██╔══╝██║██╔══██╗██╔═══██╗╚══██╔══╝     ##
+##    ██║   ██║ ████║     ███████║██╔██╗ ██║   ██║   ██║██████╔╝██║   ██║   ██║        ##
+##    ██║   ██║   ██║     ██╔══██║██║╚██╗██║   ██║   ██║██╔══██╗██║   ██║   ██║        ##
+##    ██║   ╚██████╔╝     ██║  ██║██║ ╚████║   ██║   ██║██████╔╝╚██████╔╝   ██║        ##
+##    ╚═╝    ╚═════╝      ╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝   ╚═╝╚═════╝  ╚═════╝    ╚═╝        ##
+##                                                                                     ##
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
+# TG-AntiBot Enhanced Security Configuration
+# Developed by Techinpoint Gamerz
+# Version: 2.0.0
+
+# ================================
+# CORE SYSTEM SETTINGS
+# ================================
+system:
+  active: true
+  verbose-logging: false
+  performance-mode: false
+
+# ================================
+# SHIELD PROTECTION SYSTEM
+# ================================
+shield:
+  # Detection limits for threat assessment
+  connection-burst-limit: 10      # Connections per second to activate emergency mode
+  server-query-limit: 50          # Server queries per second to activate enhanced mode
+  data-stream-limit: 100          # Data streams per second threshold
+  
+  # Response behavior
+  auto-disconnect-threats: true   # Disconnect suspicious players during emergency mode
+  recovery-delay: 60000           # Time in ms before returning to standard mode
+  temporary-ban-duration: 300     # Temporary ban duration in seconds
+  
+  # Trusted user settings
+  veteran-playtime: 3600000       # Playtime in ms to be considered veteran (1 hour)
+  trusted-session-count: 5        # Session count to be considered trusted
+
+# ================================
+# VALIDATION MODULES
+# ================================
+validation:
+  # Connection timing analysis
+  timing-analysis:
+    active: true
+    max-attempts-per-minute: 5    # Maximum connection attempts per minute per IP
+    minimum-delay: 1000           # Minimum time between connections (ms)
+  
+  # Username validation
+  username-filter:
+    active: true
+    block-special-chars: false    # Block special characters in usernames
+    forbidden-patterns:           # Forbidden username patterns
+      - "robot"
+      - "cheat"
+      - "exploit"
+      - "trial"
+      - "guest"
+  
+  # Session limit per IP
+  session-control:
+    active: true
+    max-sessions: 3               # Maximum sessions per IP address
+  
+  # Reconnection monitoring
+  reconnect-monitor:
+    active: true
+    min-reconnect-time: 2000      # Minimum time between reconnections (ms)
+  
+  # Location-based filtering
+  geo-restrictions:
+    active: false                 # Enable region-based blocking
+    restricted-regions: []        # List of restricted country codes (e.g., ["CN", "RU"])
+  
+  # Pattern recognition
+  behavior-scanner:
+    active: true
+    threat-threshold: 50          # Threat score threshold for blocking
+
+# ================================
+# THREAT DETECTION ENGINE
+# ================================
+threat-detection:
+  coordinated-assault-threshold: 20  # Assaults per minute to detect coordination
+  persistent-offender-threshold: 5   # Assaults from same IP to auto-ban
+
+# ================================
+# RISK ASSESSMENT SYSTEM
+# ================================
+risk-assessment:
+  high-danger-threshold: 70       # Risk score for high-danger classification
+  moderate-danger-threshold: 40   # Risk score for moderate-danger classification
+  safe-list: []                   # Safe IP addresses
+  danger-list: []                 # Dangerous IP addresses
+
+# ================================
+# PROXY/VPN SHIELD
+# ================================
+proxy-shield:
+  active: true
+  aggressive-mode: true           # Block all detected Proxy/VPN connections
+  cache-lifetime-minutes: 1440    # Cache proxy check results (24 hours)
+  
+  api-providers:
+    proxycheck:
+      access-key: "YOUR_API_KEY_HERE"  # Get from https://proxycheck.io/
+      request-timeout: 5000       # API timeout in milliseconds
+    
+    # Alternative providers (choose one)
+    # iphub:
+    #   access-key: "YOUR_IPHUB_KEY"
+    # vpnapi:
+    #   access-key: "YOUR_VPNAPI_KEY"
+
+# ================================
+# NETWORK BARRIER SYSTEM
+# ================================
+network-barrier:
+  active: true
+  auto-block-duration: 3600       # Auto-block duration in seconds (1 hour)
+  
+  # IP Management
+  blocked-addresses: []           # Manually blocked IP addresses
+  safe-addresses:                 # Always allowed IP addresses
+    - "127.0.0.1"
+    - "::1"
+  
+  # Advanced filtering
+  block-tor-nodes: false          # Block known Tor exit nodes
+  block-hosting-services: false   # Block known hosting/VPS providers
+
+# ================================
+# CONNECTION FLOW CONTROL
+# ================================
+flow-control:
+  max-connections: 5              # Maximum players allowed to connect per interval
+  time-window-seconds: 1          # Time window for connection limit
+  burst-shield: true              # Enable burst connection protection
+
+# ================================
+# USER DELAY SYSTEM
+# ================================
+user-delays:
+  connection-delay-ms: 3000       # Per-player connection cooldown
+  action-delay-seconds: 3         # Action usage cooldown
+  override-permission: "tga.bypass" # Permission to bypass all delays
+
+# ================================
+# ALERT & NOTIFICATION SYSTEM
+# ================================
+notifications:
+  staff-alert-permission: "tga.alerts"  # Permission to receive alerts
+  announce-threats: true          # Broadcast threat notifications
+  file-logging: true              # Log events to file
+  log-filename: "tga-security.log"
+  
+  # Notification display types
+  status-bar-updates: true        # Show real-time stats in action bar
+  popup-notifications: true      # Show threat alerts as titles
+  progress-bar-status: true      # Show protection status in boss bar
+
+# ================================
+# EXPERIMENTAL FEATURES
+# ================================
+experimental:
+  # AI-powered detection (experimental)
+  ai-threat-detection: false      # Enable AI-based threat detection
+  adaptive-learning: false       # Learn from player behavior patterns
+  
+  # Integration options
+  discord-alert-webhook: ""       # Discord webhook for alerts
+  database-storage: false         # Log to database instead of files
+  
+  # Performance optimization
+  async-validation: true          # Process validations asynchronously
+  profile-cache-size: 10000       # Maximum cached player profiles
+  maintenance-interval: 3600      # Profile maintenance interval (seconds)
+
+# ================================
+# PLUGIN COMPATIBILITY
+# ================================
+integrations:
+  # Plugin integrations
+  authme-support: true            # Integrate with AuthMe
+  essentials-support: true        # Integrate with Essentials
+  luckperms-support: true         # Integrate with LuckPerms
+  
+  # Protocol support
+  viaversion-compatibility: true  # Support ViaVersion clients
+  protocollib-integration: true   # Use ProtocolLib if available
+
+# ================================
+# CUSTOM RESPONSE MESSAGES
+# ================================
+responses:
+  # You can override any message from messages.yml here
+  # Example:
+  # system-prefix: "&7[&cTG-AntiBot&7] "
+  # threat-alert: "&c[ALERT] Threat detected: {type}"

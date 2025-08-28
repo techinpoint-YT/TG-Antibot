@@ -1,0 +1,120 @@
+name: TG-AntiBot
+version: 2.0.0
+main: org.spigot.Main
+api-version: 1.16
+author: Techinpoint Gamerz
+website: https://github.com/TechinpointGamerz/TG-AntiBot
+description: Advanced AntiBot, AntiVPN, Firewall and Security plugin for Spigot servers with machine learning capabilities.
+
+commands:
+  tgantibot:
+    description: Main TG-AntiBot command with advanced features
+    usage: /<command> <help|reload|stats|status|whitelist|blacklist|attacks|profile|toggle>
+    aliases: [tga, antibot, security]
+    permission: tga.use
+
+permissions:
+  # Basic permissions
+  tga.use:
+    description: Basic TG-AntiBot command access
+    default: true
+    
+  tga.help:
+    description: View help menu
+    default: true
+    
+  # Administrative permissions
+  tga.reload:
+    description: Reload TG-AntiBot configuration
+    default: op
+    
+  tga.stats:
+    description: View protection statistics
+    default: op
+    
+  tga.status:
+    description: View current protection status
+    default: op
+    
+  # IP Management permissions
+  tga.whitelist:
+    description: Manage IP whitelist
+    default: op
+    
+  tga.blacklist:
+    description: Manage IP blacklist
+    default: op
+    
+  # Information permissions
+  tga.attacks:
+    description: View attack logs
+    default: op
+    
+  tga.profile:
+    description: View player security profiles
+    default: op
+    
+  # Notification permissions
+  tga.toggle:
+    description: Toggle personal notifications
+    default: true
+    
+  tga.alerts:
+    description: Receive security alert notifications
+    default: op
+    
+  tga.notifications.auto:
+    description: Automatically receive notifications when joining
+    default: op
+    
+  # Bypass permissions
+  tga.bypass:
+    description: Bypass all bot protection measures
+    default: false
+    
+  tga.bypass.cooldown:
+    description: Bypass join and command cooldowns
+    default: false
+    
+  tga.bypass.vpn:
+    description: Bypass VPN/Proxy detection
+    default: false
+    
+  tga.bypass.firewall:
+    description: Bypass firewall restrictions
+    default: false
+    
+  tga.bypass.ratelimit:
+    description: Bypass rate limiting
+    default: false
+    
+  # Advanced permissions
+  tga.admin:
+    description: Full administrative access to all features
+    default: op
+    children:
+      - tga.reload
+      - tga.stats
+      - tga.status
+      - tga.whitelist
+      - tga.blacklist
+      - tga.attacks
+      - tga.profile
+      - tga.alerts
+      
+  tga.staff:
+    description: Staff level access for monitoring
+    default: false
+    children:
+      - tga.stats
+      - tga.status
+      - tga.attacks
+      - tga.alerts
+      - tga.notifications.auto
+      
+  tga.vip:
+    description: VIP bypass permissions
+    default: false
+    children:
+      - tga.bypass.cooldown
+      - tga.bypass.ratelimit
